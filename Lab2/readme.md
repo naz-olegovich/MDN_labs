@@ -1,4 +1,4 @@
-# Лабораторна робота №1
+# Лабораторна робота №2
 **Виконав:** Чопик Н.О. <br>
 **Група:** ІВ-91 <br>
 **Номер у списку:** 28 <br>
@@ -7,89 +7,150 @@
 
 ## Лістинг програми
 ```python
-import random
+from random import randint
+from math import sqrt
+from numpy.linalg import det
 from prettytable import PrettyTable
 
-A0 = 5
-A1 = 3
-A2 = 7
-A3 = 2
+variant = 28
+x1_min = -15
+x1_max = 30
+x2_min = 30
+x2_max = 80
+y_min = (20 - 128) * 10
+y_max = (30 - 128) * 10
+
+# p =0.98
+romanovsky_table = {(2, 3, 4): 1.72, (5, 6, 7): 2.13, (8, 9): 2.37, (10, 11): 2.54,
+                    (12, 13): 2.66, (14, 15, 16, 17): 2.8, (18, 19, 20): 2.96}
+
+x1 = [-1, -1, 1]
+x2 = [-1, 1, -1]
+nx1 = [x1_min if x1[i] == -1 else x1_max for i in range(3)]
+nx2 = [x2_min if x2[i] == -1 else x2_max for i in range(3)]
+
+m = 5
+y_1 = [randint(y_min, y_max) for _ in range(m)]
+y_2 = [randint(y_min, y_max) for _ in range(m)]
+y_3 = [randint(y_min, y_max) for _ in range(m)]
+
+y_lists = [y_1, y_2, y_3]
+average_y = []
+dispersion_y = []
+f_uv = []
+sigma_uv = []
+r_uv = []
+deviation = 0
+romanovsky_value = 0
 
 
-def f(x1, x2, x3):
-    return A0 + A1 * x1 + A2 * x2 + A3 * x3
+def calculate_dispersion(y_list, avg_y):
+    return sum([(i - avg_y) ** 2 for i in y_list]) / m
 
 
-def generate_x(start=0, stop=20, num_of_experiments=8):
-    return [random.randint(start, stop) for _ in range(num_of_experiments)]
+def romanovsky_criterion():
+    global average_y, dispersion_y, f_uv, sigma_uv, r_uv, deviation, romanovsky_value
+    # Знайдемо середнє значення функції відгуку в рядку
+    average_y = [sum(y_1) / m, sum(y_2) / m, sum(y_3) / m]
+
+    # Знайдемо дисперсії по рядках
+    dispersion_y = [round(calculate_dispersion(y_lists[i], average_y[i]), 4) for i in range(3)]
+
+    # Обчислимо основне відхилення
+    deviation = sqrt((2 * (2 * m - 2)) / m * (m - 4))
+
+    # Обчислимо f_uv
+    uv_pairs = [[dispersion_y[0], dispersion_y[1]], [dispersion_y[1], dispersion_y[2]], [dispersion_y[2], dispersion_y[0]]]
+    f_uv = [round(max(uv_pairs[i]) / min(uv_pairs[i]), 4) for i in range(3)]
+
+    # Обчислимо sigma_uv
+    sigma_uv = [round(((m - 2) / m * f), 4) for f in f_uv]
+
+    # Обчислимо r_uv
+    r_uv = [round((abs(sigma - 1) / deviation), 4) for sigma in sigma_uv]
+
+    for key in romanovsky_table.keys():
+        if m in key:
+            romanovsky_value = romanovsky_table[key]
+            break
+    return max(r_uv) <= romanovsky_value
 
 
-def count_x0i(x_results):
-    return (max(x_results) + min(x_results)) / 2
+while not romanovsky_criterion():
+    for i in y_lists:
+        i.append((randint(y_min, y_max)))
+    m += 1
+
+mx1, mx2, my = sum(x1) / 3, sum(x2) / 3, sum(average_y) / 3
+a1 = sum([i ** 2 for i in x1]) / 3
+a2 = sum([x1[i] * x2[i] for i in range(3)]) / 3
+a3 = sum([i ** 2 for i in x2]) / 3
+
+a11 = sum([x1[i] * average_y[i] for i in range(3)]) / 3
+a22 = sum([x2[i] * average_y[i] for i in range(3)]) / 3
+
+determinant = det([[1, mx1, mx2], [mx1, a1, a2], [mx2, a2, a3]])
+b0 = det([[my, mx1, mx2], [a11, a1, a2], [a22, a2, a3]]) / determinant
+b1 = det([[1, my, mx2], [mx1, a11, a2], [mx2, a22, a3]]) / determinant
+b2 = det([[1, mx1, my], [mx1, a1, a11], [mx2, a2, a22]]) / determinant
+
+# Проведемо натуралізацію коефіцієнтів
+delta_x1 = abs(x1_max - x1_min) / 2
+delta_x2 = abs(x2_max - x2_min) / 2
+x_10 = (x1_max + x1_min) / 2
+x_20 = (x2_max + x2_min) / 2
+
+a0 = b0 - b1 * (x_10 / delta_x1) - b2 * (x_20 / delta_x2)
+a1 = b1 / delta_x1
+a2 = b2 / delta_x2
+
+plan_table = PrettyTable()
+plan_table.field_names = ['№', 'X1', 'X2', *[f"Y{i}" for i in range(1, m + 1)]]
+for i in range(len(y_lists)):
+    plan_table.add_row([i + 1, x1[i], x2[i], *y_lists[i]])
+
+romanovsky_matrix = PrettyTable()
+romanovsky_matrix.field_names = ['№', 'AVG Y', 'Dispersion Y', 'F_uv', 'σ_uv', 'R_uv']
+for i in range(len(y_lists)):
+    romanovsky_matrix.add_row([i + 1, average_y[i], dispersion_y[i], f_uv[i], sigma_uv[i], r_uv[i]])
+
+ration_checking_table = PrettyTable()
+ration_checking_table.field_names = ['№', 'X1', 'X2', 'AVG Y', 'Experimental']
+for i in range(len(y_lists)):
+    ration_checking_table.add_row([i + 1, x1[i], x2[i], average_y[i], round(b0 + b1 * x1[i] + b2 * x2[i], 4)])
+
+naturalize_checking_table = PrettyTable()
+naturalize_checking_table.field_names= ['№', 'NX1', 'NX2', 'AVG Y', 'Experimental']
+for i in range(len(y_lists)):
+    naturalize_checking_table.add_row([i + 1, nx1[i], nx2[i], average_y[i], round(a0 + a1 * nx1[i] + a2 * nx2[i], 4)])
+
+print(plan_table, end="\n\n")
+print(romanovsky_matrix, end="\n\n")
+
+print(f"y = {round(b0, 4)} + {round(b1, 4)}*x1 + {round(b2, 4)}*x2")
+print(ration_checking_table, end="\n\n")
+
+print(f"y = {round(a0, 4)} + {round(a1, 4)}*nx1 + {round(a2, 4)}*nx2")
+print(naturalize_checking_table)
+print(f"Відхилення: {deviation}")
+print(f"Критерій Романовського: {romanovsky_value}")
 
 
-def count_dxi(x0i, x_results):
-    return x0i - min(x_results)
-
-
-def count_xni(x0i, dxi, x_results):
-    return [round((i - x0i) / dxi, 3) for i in x_results]
-
-
-def get_opt_y(Y):
-    avg = sum(Y) / len(Y)
-    print(f"Average = {avg}")
-    arr = ([i for i in Y if i <= avg])
-    return Y.index(max(arr))
-
-
-X1, X2, X3 = [generate_x() for i in range(3)]
-Y = [f(X1[i], X2[i], X3[i]) for i in range(8)]
-X01 = count_x0i(X1)
-X02 = count_x0i(X2)
-X03 = count_x0i(X3)
-
-dX1 = count_dxi(X01, X1)
-dX2 = count_dxi(X02, X2)
-dX3 = count_dxi(X03, X3)
-
-X1n = count_xni(X01, dX1, X1)
-X2n = count_xni(X02, dX2, X2)
-X3n = count_xni(X03, dX3, X3)
-
-Yet = f(X01, X02, X03)
-
-table = PrettyTable()
-table.field_names = ['N', 'X1', 'X2', 'X3', 'Y', 'XH1', 'XH2', 'XH3']
-table.add_rows(
-    zip(range(1, 9), X1, X2, X3, Y, X1n, X2n, X3n)
-)
-
-table.add_row(["X0", X01, X02, X03, "—", "—", "—", "—", ])
-table.add_row(["dx", dX1, dX2, dX3, "—", "—", "—", "—", ])
-print(table)
-print(f"Yет = {Yet}")
-OPT_Y = get_opt_y(Y)
-OPT_POINT = [X1[OPT_Y], X2[OPT_Y], X3[OPT_Y]]
-print(f"Optimal point:  Y({X1[OPT_Y]}, {X2[OPT_Y]}, {X3[OPT_Y]}) = {Y[OPT_Y]}")
 ```
 
 ## Відповіді на контрольні запитання
 
-1. З чого складається план експерименту? <br>
-Сукупність усіх точок плану - векторів Xi  (для i = 1, 2, . . . , N)  утворює план експерименту. Таким чином, план експерименту описується матрицею, яка містить N рядків і K стовбців. Кожен рядок матриці означає точку плану експерименту, а стовпчик – фактор експерименту. 
+Контрольні запитання:
 
-2. Що називається спектром плану? <br>
-Сукупність усіх точок плану, що відрізняються рівнем хоча б одного фактора (різних строк матриці планування), називається спектром плану. 
+1.	Що таке регресійні поліноми і де вони застосовуються?
+В теорії планування експерименту найважливішою частиною є оцінка результатів вимірів. При цьому використовують апроксимуючі поліноми, за допомогою яких ми можемо описати нашу функцію. В ТПЕ ці поліноми отримали спеціальну назву - регресійні поліноми, а їх знаходження та аналіз - регресійний аналіз.
+2.	Визначення однорідності дисперсії.
+Обирають так названу «довірчу ймовірність» p – ймовірність, з якою вимагається підтвердити гіпотезу про однорідність дисперсій. У відповідності до p і кількості дослідів m обирають з таблиці критичне значення критерію . Кожне  експериментальне значення Ruv критерію Романовського порівнюється з Rкр. (значення критерію Романовського за різних довірчих ймовірностей p) і якщо для усіх   кожне Ruv < Rкр., то гіпотеза про однорідність дисперсій підтверджується з ймовірністю p.
+3.	Що називається повним факторним експериментом?
+Для знаходження коефіцієнтів у лінійному рівнянні регресії застосовують повний факторний експеримент (ПФЕ). Якщо в багатофакторному експерименті використані всі можливі комбінації рівнів факторів, то такий експеримент називається повним факторним експериментом 
 
-3. Чим відрізняються активні та пасивні експерименти? <br>
-В пасивному експерименті існують контрольовані, але некеровані вхідні параметри – ми не маємо можливості втручатись в хід проведення експерименту, і виступаємо в ролі пасивного користувача. В активному – існують керовані і контрольовані вхідні параметри – ми самі являємось адміністраторами нашої системи. 
-
-4. Чим характеризується об’єкт досліджень? Дайте визначення факторному простору. <br>
-Об’єкт досліджень розглядається як «чорний ящик». Аналізуються деякі властивості та якості, які можуть описуватися числовими значеннями. Вектор Х1…Хк  представляє собою групу контрольованих та керованих величин, котрі можуть змінюватись необхідним чином при проведенні експерименту, Цю групу характеристик Х1…Хк  також називають факторами або керованими впливами.  
-Факторний простір — це множина зовнішніх і внутрішніх параметрів моделі, значення яких дослідник може контролювати в ході підготовки і проведення модельного експерименту.
 
 
 ## Результат виконання роботи
 
-![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab1/result.png)
+![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab2/result_lab2.png)
