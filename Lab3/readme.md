@@ -190,4 +190,4 @@ else:
 
 ## Результат виконання роботи
 
-![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab2/result_lab3.png)
+![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab3/result_lab3.png)
