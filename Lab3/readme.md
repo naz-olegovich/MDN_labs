@@ -136,7 +136,7 @@ if max(matrix_disY) / sum(matrix_disY) < 0.7679:
 else:
     print('Дисперсія неоднорідна - ', max(matrix_disY) / sum(matrix_disY), " > 0.7679")
 
-print('\nПроверка значущості коефіцієнтів за критерієм Стьюдента:')
+print('\nПеревірка значущості коефіцієнтів за критерієм Стьюдента:')
 S2b = sum(matrix_disY) / n
 S2bs = S2b / (m * n)
 Sbs = sqrt(S2bs)
