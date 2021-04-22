@@ -17,7 +17,7 @@ def get_dispersion(matrix):
     return [round(sum([((k1 - get_average(matrix)[j]) ** 2) for k1 in matrix[j]]) / m, 3) for j in range(n)]
 
 
-def fill_x_matrix():
+def fill_x_matrix(x1_list, x2_list, x3_list, x1x2_list, x1x3_list, x2x3_list, x1x2x3_list):
     [x1_list.append(x1[0 if i == -1 else 1]) for i in x1_factor]
     [x2_list.append(x2[0 if i == -1 else 1]) for i in x2_factor]
     [x3_list.append(x3[0 if i == -1 else 1]) for i in x3_factor]
@@ -27,7 +27,7 @@ def fill_x_matrix():
     [x1x2x3_list.append(a * b * c) for a, b, c in zip(x1_list, x2_list, x3_list)]
 
 
-def cohren():
+def cohren(matrix_y, F1, F2):
     def cohren_teor(f1, f2, q=0.05):
         q1 = q / f1
         fisher_value = f.ppf(q=1 - q1, dfn=f2, dfd=(f1 - 1) * f2)
@@ -39,13 +39,17 @@ def cohren():
     return Gp < Gt
 
 
-def fisher():
+def fisher(F3, F4):
     fisher_teor = partial(f.ppf, q=1 - 0.05)
     Ft = fisher_teor(dfn=F4, dfd=F3)
     return Ft
 
 
 m, n, d = 3, 8, 8
+
+x1 = [-40, 20]
+x2 = [-25, 10]
+x3 = [-25, -10]
 
 x0_factor = [1, 1, 1, 1, 1, 1, 1, 1]
 x1_factor = [-1, -1, 1, 1, -1, -1, 1, 1]
@@ -56,114 +60,119 @@ x1x3_factor = [a * b for a, b in zip(x1_factor, x3_factor)]
 x2x3_factor = [a * b for a, b in zip(x2_factor, x3_factor)]
 x1x2x3_factor = [a * b * c for a, b, c in zip(x1_factor, x2_factor, x3_factor)]
 
-x1_list = []
-x2_list = []
-x3_list = []
-x1x2_list = []
-x1x3_list = []
-x2x3_list = []
-x1x2x3_list = []
-x_main_list = [x0_factor, x1_list, x2_list, x3_list, x1x2_list, x1x3_list, x2x3_list, x1x2x3_list]
-x_factor_list = [x0_factor, x1_factor, x2_factor, x3_factor, x1x2_factor, x1x3_factor, x2x3_factor, x1x2x3_factor]
 
-list_bi = []
+def main():
+    global m, d
+    x1_list = []
+    x2_list = []
+    x3_list = []
+    x1x2_list = []
+    x1x3_list = []
+    x2x3_list = []
+    x1x2x3_list = []
+    x_main_list = [x0_factor, x1_list, x2_list, x3_list, x1x2_list, x1x3_list, x2x3_list, x1x2x3_list]
+    x_factor_list = [x0_factor, x1_factor, x2_factor, x3_factor, x1x2_factor, x1x3_factor, x2x3_factor, x1x2x3_factor]
 
-F1 = m - 1
-F2 = n
-F3 = F1 * F2
-F4 = n - d
+    list_bi = []
 
-x1 = [-40, 20]
-x2 = [-25, 10]
-x3 = [-25, -10]
-x_tuple = (x1, x2, x3)
-x_max_average = average([i[1] for i in x_tuple])
-x_min_average = average([i[0] for i in x_tuple])
-y_max = int(200 + x_max_average)
-y_min = int(200 + x_min_average)
-y_min_max = [y_min, y_max]
-matrix_y = [[randint(y_min_max[0], y_min_max[1]) for _ in range(m)] for _ in range(n)]
+    F1 = m - 1
+    F2 = n
+    F3 = F1 * F2
+    F4 = n - d
 
-fill_x_matrix()
+    x_tuple = (x1, x2, x3)
+    x_max_average = average([i[1] for i in x_tuple])
+    x_min_average = average([i[0] for i in x_tuple])
+    y_max = int(200 + x_max_average)
+    y_min = int(200 + x_min_average)
+    y_min_max = [y_min, y_max]
+    matrix_y = [[randint(y_min_max[0], y_min_max[1]) for _ in range(m)] for _ in range(n)]
 
-dispersion = get_dispersion(matrix_y)
-sum_dispersion = sum(dispersion)
-y_average = get_average(matrix_y)
+    fill_x_matrix(x1_list, x2_list, x3_list, x1x2_list, x1x3_list, x2x3_list, x1x2x3_list)
 
-column_names1 = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "Y1", "Y2", "Y3", "Y", "S^2"]
-trans_y_mat = transpose(matrix_y).tolist()
+    dispersion = get_dispersion(matrix_y)
+    sum_dispersion = sum(dispersion)
+    y_average = get_average(matrix_y)
 
-list_for_solve_a = list(zip(*x_main_list))
-list_for_solve_b = x_factor_list
+    column_names1 = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "Y1", "Y2", "Y3", "Y", "S^2"]
+    trans_y_mat = transpose(matrix_y).tolist()
 
-for k in range(n):
-    S = 0
-    for i in range(n):
-        S += (list_for_solve_b[k][i] * y_average[i]) / n
-    list_bi.append(round(S, 5))
+    list_for_solve_a = list(zip(*x_main_list))
+    list_for_solve_b = x_factor_list
 
-pt = PrettyTable()
-cols = x_factor_list
-[cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
-[pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
-print(pt)
-print('Рівняння регресії з коефіцієнтами від нормованих значень факторів')
-print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3 \n".format(*list_bi))
+    for k in range(n):
+        S = 0
+        for i in range(n):
+            S += (list_for_solve_b[k][i] * y_average[i]) / n
+        list_bi.append(round(S, 5))
 
-pt = PrettyTable()
-cols = x_main_list
-[cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
-[pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
-print(pt)
+    pt = PrettyTable()
+    cols = x_factor_list
+    [cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
+    [pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
+    print(pt)
+    print('Рівняння регресії з коефіцієнтами від нормованих значень факторів')
+    print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3 \n".format(*list_bi))
 
-list_ai = [round(i, 5) for i in solve(list_for_solve_a, y_average)]
-print('Рівняння регресії з коефіцієнтами від натуральних значень факторів')
-print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*list_ai))
+    pt = PrettyTable()
+    cols = x_main_list
+    [cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
+    [pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
+    print(pt)
 
-print('Критерій Кохрена:')
-if cohren():
-    print("Дисперсія однорідна\n")
-    Dispersion_B = sum_dispersion / n
-    Dispersion_beta = Dispersion_B / (m * n)
-    S_beta = math.sqrt(abs(Dispersion_beta))
-    b_list = np.zeros(8).tolist()
-    for i in range(n):
-        b_list[0] += (y_average[i] * x0_factor[i]) / n
-        b_list[1] += (y_average[i] * x1_factor[i]) / n
-        b_list[2] += (y_average[i] * x2_factor[i]) / n
-        b_list[3] += (y_average[i] * x3_factor[i]) / n
-        b_list[4] += (y_average[i] * x1x2_factor[i]) / n
-        b_list[5] += (y_average[i] * x1x3_factor[i]) / n
-        b_list[6] += (y_average[i] * x2x3_factor[i]) / n
-        b_list[7] += (y_average[i] * x1x2x3_factor[i]) / n
-    t_list = [abs(b_list[i]) / S_beta for i in range(0, n)]
+    list_ai = [round(i, 5) for i in solve(list_for_solve_a, y_average)]
+    print('Рівняння регресії з коефіцієнтами від натуральних значень факторів')
+    print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*list_ai))
 
-    significant_coefficients = 0
-    non_significant_coefficients = 0
-    for i, j in enumerate(t_list):
-        # print(f"t{i} = {b_list[i]}")
-        if j < criterion_t.ppf(q=0.975, df=F3):
-            b_list[i] = 0
-            d -= 1
-            non_significant_coefficients += 1
+    print('Критерій Кохрена:')
+    if cohren(matrix_y, F1, F2):
+        print("Дисперсія однорідна\n")
+        Dispersion_B = sum_dispersion / n
+        Dispersion_beta = Dispersion_B / (m * n)
+        S_beta = math.sqrt(abs(Dispersion_beta))
+        b_list = np.zeros(8).tolist()
+        for i in range(n):
+            b_list[0] += (y_average[i] * x0_factor[i]) / n
+            b_list[1] += (y_average[i] * x1_factor[i]) / n
+            b_list[2] += (y_average[i] * x2_factor[i]) / n
+            b_list[3] += (y_average[i] * x3_factor[i]) / n
+            b_list[4] += (y_average[i] * x1x2_factor[i]) / n
+            b_list[5] += (y_average[i] * x1x3_factor[i]) / n
+            b_list[6] += (y_average[i] * x2x3_factor[i]) / n
+            b_list[7] += (y_average[i] * x1x2x3_factor[i]) / n
+        t_list = [abs(b_list[i]) / S_beta for i in range(0, n)]
+
+        significant_coefficients = 0
+        non_significant_coefficients = 0
+        for i, j in enumerate(t_list):
+            # print(f"t{i} = {b_list[i]}")
+            if j < criterion_t.ppf(q=0.975, df=F3):
+                b_list[i] = 0
+                d -= 1
+                non_significant_coefficients += 1
+            else:
+                significant_coefficients += 1
+        print(f'Кількість значущих коефіцієнтів за критерієм Стьюдента: {significant_coefficients}')
+        print(f'Кількість не значущих коефіцієнтів за критерієм Стьюдента: {non_significant_coefficients}\n')
+        print("Рівняння: \ny = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*b_list))
+
+        Y_counted = [sum([b_list[0], *[b_list[i] * x_main_list[1:][j][i] for i in range(n)]])
+                     for j in range(n)]
+        Dispersion_ad = 0
+        for i in range(len(Y_counted)):
+            Dispersion_ad += ((Y_counted[i] - y_average[i]) ** 2) * m / (n - d)
+        Fp = Dispersion_ad / Dispersion_beta
+        Ft = fisher(F3, F4)
+
+        if Ft > Ft:
+            print('За критрерієм Фішера рівняння регресії неадекватно оригіналу')
         else:
-            significant_coefficients += 1
-    print(f'Кількість значущих коефіцієнтів за критерієм Стьюдента: {significant_coefficients}')
-    print(f'Кількість не значущих коефіцієнтів за критерієм Стьюдента: {non_significant_coefficients}\n')
-    print("Рівняння: \ny = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*b_list))
+            print('За критрерієм Фішера рівняння регресії адекватно оригіналу')
 
-    Y_counted = [sum([b_list[0], *[b_list[i] * x_main_list[1:][j][i] for i in range(n)]])
-                 for j in range(n)]
-    Dispersion_ad = 0
-    for i in range(len(Y_counted)):
-        Dispersion_ad += ((Y_counted[i] - y_average[i]) ** 2) * m / (n - d)
-    Fp = Dispersion_ad / Dispersion_beta
-    Ft = fisher()
-
-    if Ft > Ft:
-        print('За критрерієм Фішера рівняння регресії неадекватно оригіналу')
     else:
-        print('За критрерієм Фішера рівняння регресії адекватно оригіналу')
+        print("Дисперсія не однорідна\n")
+        m += 1
+        main()
 
-else:
-    print("Дисперсія не однорідна\n")
+
+main()
