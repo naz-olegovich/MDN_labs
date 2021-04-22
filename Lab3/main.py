@@ -133,11 +133,16 @@ S2bs = S2b / (m * n)
 Sbs = sqrt(S2bs)
 bb = [sum(get_average(matrix_y)[k] * transposed_planning_matrix[i][k] for k in range(n)) / n for i in range(n)]
 t = [abs(bb[i]) / Sbs for i in range(n)]
+minor_coefficients = []
+
 for i in range(n):
     print(f"t{i} = {b_list[i]}")
-    if t[i] < criterion_t.ppf(q=0.975, df=f3):
+    if t[i] < criterion_t.ppf(q=0.975, df=f3):  # Якщо коефіцієнт незначимий
+        minor_coefficients.append(b_list[i])
         b_list[i] = 0
         d -= 1
+    else:
+        minor_coefficients.append(0)
 
 y_regression = [b_list[0] + b_list[1] * matrix_x[i][0] + b_list[2] * matrix_x[i][1] + b_list[3] * matrix_x[i][2] for i in range(n)]
 
@@ -156,4 +161,10 @@ print('FP  =', Fp)
 if Fp > F_table:
     print('Рівняння регресії неадекватно оригіналу при рівні значимості 0.05')
 else:
-    print('Рівняння регресії адекватно оригіналу при рівні значимості 0.05')
+    print('Рівняння регресії адекватно оригіналу при рівні значимості 0.05\n')
+
+
+print("Значення у якщо будемо брати до уваги тільки незначимі кофіцієнти")
+for i in range(n):
+    print(f"{minor_coefficients[0]} + {minor_coefficients[1]}*x1 + {minor_coefficients[2]}*x2 + {minor_coefficients[3]}*x3 = "
+          f"{minor_coefficients[0] + minor_coefficients[1] * matrix_x[i][0] + minor_coefficients[2] * matrix_x[i][1] + minor_coefficients[3] * matrix_x[i][2]}")
