@@ -1,4 +1,4 @@
-# Лабораторна робота №3
+# Лабораторна робота №4
 **Виконав:** Чопик Н.О. <br>
 **Група:** ІВ-91 <br>
 **Номер у списку:** 28 <br>
@@ -7,187 +7,180 @@
 
 ## Лістинг програми
 ```python
-from random import randint
-from scipy import linalg
+import math
+import numpy as np
+from numpy import average, transpose
+from numpy.linalg import solve
+from prettytable import PrettyTable
+from scipy.stats import f
 from scipy.stats import t as criterion_t
-from scipy.stats import f as criterion_f
-from math import sqrt
-
-
-def get_x_matrix(planning_matrix, x_list):
-    result = []
-    for i in range(len(planning_matrix)):
-        row = []
-        for j in range(1, len(planning_matrix[i])):
-            if planning_matrix[i][j] == -1:
-                row.append(x_list[j - 1][0])
-            else:
-                row.append(x_list[j - 1][1])
-        result.append(row)
-    return result
+from functools import partial
+from random import randint
 
 
 def get_average(matrix):
-    return [round(sum(matrix[k]) / m, 4) for k in range(n)]
+    return [round(sum(matrix[k1]) / m, 3) for k1 in range(n)]
 
 
 def get_dispersion(matrix):
-    return [round(sum([((i - get_average(matrix)[j]) ** 2) for i in matrix[j]]) / m, 4) for j in range(n)]
+    return [round(sum([((k1 - get_average(matrix)[j]) ** 2) for k1 in matrix[j]]) / m, 3) for j in range(n)]
 
 
-def get_mx_my(matrix_x, mat_y):
-    mx = [sum(matrix_x[i][k] for i in range(n)) / n for k in range(m)]
-    my = sum(get_average(mat_y)) / n
-    return mx, my
+def fill_x_matrix():
+    [x1_list.append(x1[0 if i == -1 else 1]) for i in x1_factor]
+    [x2_list.append(x2[0 if i == -1 else 1]) for i in x2_factor]
+    [x3_list.append(x3[0 if i == -1 else 1]) for i in x3_factor]
+    [x1x2_list.append(a * b) for a, b in zip(x1_list, x2_list)]
+    [x1x3_list.append(a * b) for a, b in zip(x1_list, x3_list)]
+    [x2x3_list.append(a * b) for a, b in zip(x2_list, x3_list)]
+    [x1x2x3_list.append(a * b * c) for a, b, c in zip(x1_list, x2_list, x3_list)]
 
 
-def get_ai_aii(transposed_x_matrix, matrix_y):
-    ai = [round(sum(transposed_x_matrix[k][i] * get_average(matrix_y)[i] for i in range(n)) / n, 4) for k in range(m)]
-    aii = [round(sum(transposed_x_matrix[k][i] ** 2 for i in range(n)) / n, 4) for k in range(m)]
-    return ai, aii
+def cohren():
+    def cohren_teor(f1, f2, q=0.05):
+        q1 = q / f1
+        fisher_value = f.ppf(q=1 - q1, dfn=f2, dfd=(f1 - 1) * f2)
+        return fisher_value / (fisher_value + f1 - 1)
+
+    Gp = max(get_dispersion(matrix_y)) / sum(get_dispersion(matrix_y))
+    Gt = cohren_teor(F1, F2)
+    # print("\nGp = ", Gp, " Gt = ", Gt)
+    return Gp < Gt
 
 
-def find_cf():
-    tran = transposed_x_matrix
-    mx, my = get_mx_my(matrix_x, matrix_y)
-    ai, aii = get_ai_aii(transposed_x_matrix, matrix_y)
-
-    a12 = a21 = (tran[0][0] * tran[1][0] + tran[0][1] * tran[1][1] + tran[0][2] * tran[1][2] + tran[0][3] * tran[1][3]) / n
-    a13 = a31 = (tran[0][0] * tran[2][0] + tran[0][1] * tran[2][1] + tran[0][2] * tran[2][2] + tran[0][3] * tran[2][3]) / n
-    a23 = a32 = (tran[1][0] * tran[2][0] + tran[1][1] * tran[2][1] + tran[1][2] * tran[2][2] + tran[1][3] * tran[2][3]) / n
-
-    delta_b = linalg.det(
-        [[1, mx[0], mx[1], mx[2]],
-         [mx[0], aii[0], a12, a13],
-         [mx[1], a12, aii[1], a32],
-         [mx[2], a13, a23, aii[2]]])
-
-    b0 = linalg.det([[my, mx[0], mx[1], mx[2]],
-                     [ai[0], aii[0], a12, a13],
-                     [ai[1], a12, aii[1], a32],
-                     [ai[2], a13, a23, aii[2]]]) / delta_b
-
-    b1 = linalg.det([[1, my, mx[1], mx[2]],
-                     [mx[0], ai[0], a12, a13],
-                     [mx[1], ai[1], aii[1], a32],
-                     [mx[2], ai[2], a23, aii[2]]]) / delta_b
-
-    b2 = linalg.det([[1, mx[0], my, mx[2]],
-                     [mx[0], aii[0], ai[0], a13],
-                     [mx[1], a12, ai[1], a32],
-                     [mx[2], a13, ai[2], aii[2]]]) / delta_b
-
-    b3 = linalg.det([[1, mx[0], mx[1], my],
-                     [mx[0], aii[0], a12, ai[0]],
-                     [mx[1], a12, aii[1], ai[1]],
-                     [mx[2], a13, a23, ai[2]]]) / delta_b
-
-    check = [round(b0 + b1 * tran[0][i] + b2 * tran[1][i] + b3 * tran[2][i], 4) for i in range(4)]
-    b_list = [round(b0, 4), round(b1, 4), round(b2, 4), round(b3, 4)]
-    return check, b_list
+def fisher():
+    fisher_teor = partial(f.ppf, q=1 - 0.05)
+    Ft = fisher_teor(dfn=F4, dfd=F3)
+    return Ft
 
 
-def show_matrix(matrix):
-    result = ""
-    for row in matrix:
-        result += f"{row}\n"
-    print(result)
+m, n, d = 3, 8, 8
 
+x0_factor = [1, 1, 1, 1, 1, 1, 1, 1]
+x1_factor = [-1, -1, 1, 1, -1, -1, 1, 1]
+x2_factor = [-1, 1, -1, 1, -1, 1, -1, 1]
+x3_factor = [-1, 1, 1, -1, 1, -1, -1, 1]
+x1x2_factor = [a * b for a, b in zip(x1_factor, x2_factor)]
+x1x3_factor = [a * b for a, b in zip(x1_factor, x3_factor)]
+x2x3_factor = [a * b for a, b in zip(x2_factor, x3_factor)]
+x1x2x3_factor = [a * b * c for a, b, c in zip(x1_factor, x2_factor, x3_factor)]
 
-m = 3
-n = 4
-d = 4
-x1 = [-15, 30]
-x2 = [30, 80]
-x3 = [30, 35]
-x_list = [x1, x2, x3]
+x1_list = []
+x2_list = []
+x3_list = []
+x1x2_list = []
+x1x3_list = []
+x2x3_list = []
+x1x2x3_list = []
+x_main_list = [x0_factor, x1_list, x2_list, x3_list, x1x2_list, x1x3_list, x2x3_list, x1x2x3_list]
+x_factor_list = [x0_factor, x1_factor, x2_factor, x3_factor, x1x2_factor, x1x3_factor, x2x3_factor, x1x2x3_factor]
 
-planning_matrix = [[1, -1, -1, -1],
-                   [1, -1, 1, 1],
-                   [1, 1, -1, 1],
-                   [1, 1, 1, -1]]
+list_bi = []
 
-matrix_x = get_x_matrix(planning_matrix, x_list)
+F1 = m - 1
+F2 = n
+F3 = F1 * F2
+F4 = n - d
 
-transposed_planning_matrix = [list(i) for i in zip(*planning_matrix)]
-transposed_x_matrix = [list(i) for i in zip(*matrix_x)]
-
-x_min_max_av = [sum(x_list[i][k] for i in range(3)) / 3 for k in range(2)]
-y_min_max = [int(200 + x_min_max_av[i]) for i in range(2)]
-
+x1 = [-40, 20]
+x2 = [-25, 10]
+x3 = [-25, -10]
+x_tuple = (x1, x2, x3)
+x_max_average = average([i[1] for i in x_tuple])
+x_min_average = average([i[0] for i in x_tuple])
+y_max = int(200 + x_max_average)
+y_min = int(200 + x_min_average)
+y_min_max = [y_min, y_max]
 matrix_y = [[randint(y_min_max[0], y_min_max[1]) for _ in range(m)] for _ in range(n)]
 
-f1 = m - 1
-f2 = n
-f3 = f1 * f2
-f4 = n - d
+fill_x_matrix()
 
-matrix_disY = get_dispersion(matrix_y)
-check, b_list = find_cf()
+dispersion = get_dispersion(matrix_y)
+sum_dispersion = sum(dispersion)
+y_average = get_average(matrix_y)
 
-print('Матриця планування:')
-show_matrix(matrix_x)
+column_names1 = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "Y1", "Y2", "Y3", "Y", "S^2"]
+trans_y_mat = transpose(matrix_y).tolist()
 
-print(f"Рівняня регресії\ny = {b_list[0]} + {b_list[1]}*x1 + {b_list[2]}*x2 + {b_list[3]}*x3")
+list_for_solve_a = list(zip(*x_main_list))
+list_for_solve_b = x_factor_list
 
-print('\nПеревірка однорідності за Кохрена:')
-if max(matrix_disY) / sum(matrix_disY) < 0.7679:
-    print('Дисперсія однорідна:', max(matrix_disY) / sum(matrix_disY), "< 0.7679")
+for k in range(n):
+    S = 0
+    for i in range(n):
+        S += (list_for_solve_b[k][i] * y_average[i]) / n
+    list_bi.append(round(S, 5))
+
+pt = PrettyTable()
+cols = x_factor_list
+[cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
+[pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
+print(pt)
+print('Рівняння регресії з коефіцієнтами від нормованих значень факторів')
+print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3 \n".format(*list_bi))
+
+pt = PrettyTable()
+cols = x_main_list
+[cols.extend(ls) for ls in [trans_y_mat, [y_average], [dispersion]]]
+[pt.add_column(column_names1[coll_id], cols[coll_id]) for coll_id in range(13)]
+print(pt)
+
+list_ai = [round(i, 5) for i in solve(list_for_solve_a, y_average)]
+print('Рівняння регресії з коефіцієнтами від натуральних значень факторів')
+print("y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*list_ai))
+
+print('Критерій Кохрена:')
+if cohren():
+    print("Дисперсія однорідна\n")
+    Dispersion_B = sum_dispersion / n
+    Dispersion_beta = Dispersion_B / (m * n)
+    S_beta = math.sqrt(abs(Dispersion_beta))
+    b_list = np.zeros(8).tolist()
+    for i in range(n):
+        b_list[0] += (y_average[i] * x0_factor[i]) / n
+        b_list[1] += (y_average[i] * x1_factor[i]) / n
+        b_list[2] += (y_average[i] * x2_factor[i]) / n
+        b_list[3] += (y_average[i] * x3_factor[i]) / n
+        b_list[4] += (y_average[i] * x1x2_factor[i]) / n
+        b_list[5] += (y_average[i] * x1x3_factor[i]) / n
+        b_list[6] += (y_average[i] * x2x3_factor[i]) / n
+        b_list[7] += (y_average[i] * x1x2x3_factor[i]) / n
+    t_list = [abs(b_list[i]) / S_beta for i in range(0, n)]
+
+    significant_coefficients = 0
+    non_significant_coefficients = 0
+    for i, j in enumerate(t_list):
+        # print(f"t{i} = {b_list[i]}")
+        if j < criterion_t.ppf(q=0.975, df=F3):
+            b_list[i] = 0
+            d -= 1
+            non_significant_coefficients += 1
+        else:
+            significant_coefficients += 1
+    print(f'Кількість значущих коефіцієнтів за критерієм Стьюдента: {significant_coefficients}')
+    print(f'Кількість не значущих коефіцієнтів за критерієм Стьюдента: {non_significant_coefficients}\n')
+    print("Рівняння: \ny = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3\n".format(*b_list))
+
+    Y_counted = [sum([b_list[0], *[b_list[i] * x_main_list[1:][j][i] for i in range(n)]])
+                 for j in range(n)]
+    Dispersion_ad = 0
+    for i in range(len(Y_counted)):
+        Dispersion_ad += ((Y_counted[i] - y_average[i]) ** 2) * m / (n - d)
+    Fp = Dispersion_ad / Dispersion_beta
+    Ft = fisher()
+
+    if Ft > Ft:
+        print('За критрерієм Фішера рівняння регресії неадекватно оригіналу')
+    else:
+        print('За критрерієм Фішера рівняння регресії адекватно оригіналу')
+
 else:
-    print('Дисперсія неоднорідна - ', max(matrix_disY) / sum(matrix_disY), " > 0.7679")
-
-print('\nПеревірка значущості коефіцієнтів за критерієм Стьюдента:')
-S2b = sum(matrix_disY) / n
-S2bs = S2b / (m * n)
-Sbs = sqrt(S2bs)
-bb = [sum(get_average(matrix_y)[k] * transposed_planning_matrix[i][k] for k in range(n)) / n for i in range(n)]
-t = [abs(bb[i]) / Sbs for i in range(n)]
-for i in range(n):
-    print(f"t{i} = {b_list[i]}")
-    if t[i] < criterion_t.ppf(q=0.975, df=f3):
-        b_list[i] = 0
-        d -= 1
-
-y_regression = [b_list[0] + b_list[1] * matrix_x[i][0] + b_list[2] * matrix_x[i][1] + b_list[3] * matrix_x[i][2] for i in range(n)]
-
-print('Значення у:')
-for i in range(n):
-    print(f"{b_list[0]} + {b_list[1]}*x1 + {b_list[2]}*x2 + {b_list[3]}*x3 = "
-          f"{b_list[0] + b_list[1] * matrix_x[i][0] + b_list[2] * matrix_x[i][1] + b_list[3] * matrix_x[i][2]}")
-
-print('\nПеревірка адекватності за Фішером:')
-Sad = (m / (n - d)) * int(sum(y_regression[i] - get_average(matrix_y)[i] for i in range(n)) ** 2)
-Fp = Sad / S2b
-q = 0.05
-F_table = criterion_f.ppf(q=1 - q, dfn=f4, dfd=f3)
-print('FP  =', Fp)
-
-if Fp > F_table:
-    print('Рівняння регресії неадекватно оригіналу при рівні значимості 0.05')
-else:
-    print('Рівняння регресії адекватно оригіналу при рівні значимості 0.05')
-
-
+    print("Дисперсія не однорідна\n")
 
 ```
 
-## Відповіді на контрольні запитання
-
-Контрольні запитання:
-
-1.Що називається дробовим факторним експериментом?
-Дробовим факторним експериментом називається експеримент з використанням частини повного факторного експерименту
-
-2.Для чого потрібно розрахункове значення Кохрена?
-Розрахункове значення Кохрена використовують для перевірки однорідності дисперсій.
-
-3. Для чого перевіряється критерій Стьюдента?
-За допомогою критерію Стьюдента перевіряється значущість коефіцієнтів рівняння
-
-4.Чим визначається критерій Фішера і як його застосовувати?
-Критерій Фішера використовують при перевірці отриманого рівняння регресії досліджуваного об”єкта.
 
 
 ## Результат виконання роботи
 
-![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab3/result_lab3.png)
+![Результат](https://github.com/naz-olegovich/MDN_labs/blob/main/Lab4/result_lab4.png)
