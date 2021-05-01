@@ -1,6 +1,7 @@
 import random
 import sklearn.linear_model as lm
 import numpy as np
+import time
 from scipy.stats import f, t
 from functools import partial
 from pyDOE2 import *
@@ -149,8 +150,8 @@ def check(x, y, b, n, m):
     f2 = n
     f3 = f1 * f2
     q = 0.05
-    student = partial(t.ppf, q=1 - q)
-    t_student = student(df=f3)
+
+    start_time_kohren = time.perf_counter()
     g_kr = kohren(f1, f2)
     y_aver = [round(sum(i) / len(i), 3) for i in y]
     print('\nСереднє значення у:', y_aver)
@@ -164,6 +165,11 @@ def check(x, y, b, n, m):
         print("Необхідно збільшити кількість експериментів")
         m += 1
         main(n, m)
+    print(f"Час перевірки однорідності дисперсії за Кохреном: {time.perf_counter()-start_time_kohren}")
+
+    start_time_student = time.perf_counter()
+    student = partial(t.ppf, q=1 - q)
+    t_student = student(df=f3)
     ts = student_kr(x[:, 1:], y, y_aver, n, m)
     print('\nКритерій Стюдента:\n{}:'.format(ts))
     res = [t for t in ts if t > t_student]
@@ -175,10 +181,13 @@ def check(x, y, b, n, m):
     print('Значення y з коефіцієнтами {}: '.format(final_k))
     print(y_new)
     d = len(res)
+    print(f"Час перевірки значимості коефіцієнтів регресії за Стьюдентом: {time.perf_counter() - start_time_student}")
     if d >= n:
         print('\nF4 <= 0')
         print('')
         return
+
+    start_time_fisher = time.perf_counter()
     f4 = n - d
     f_p = fisher_kr(y, y_aver, y_new, n, m, d)
     fisher = partial(f.ppf, q=0.95)
@@ -190,6 +199,7 @@ def check(x, y, b, n, m):
         print('Математична модель адекватна експериментальним даним')
     else:
         print('Математична модель неадекватна експериментальним даним')
+    print(f"Час перевірки адекватності моделі оригіналу за допомогою критерію Фішера: {time.perf_counter() - start_time_fisher}")
 
 
 def main(n, m):
